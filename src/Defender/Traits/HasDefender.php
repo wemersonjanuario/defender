@@ -156,16 +156,19 @@ trait HasDefender
     protected function getFreshAllPermissions()
     {
         $permissionsRoles = $this->getRolesPermissions(true);
-
+        
         $permissions = app('defender.permission')->getActivesByUser($this);
-
+        
+	    $permissionsInactives = app('defender.permission')->getInactivesByUser($this);
+        
         $permissions = $permissions->merge($permissionsRoles)
-            ->map(function ($permission) {
-                unset($permission->pivot, $permission->created_at, $permission->updated_at);
-
-                return $permission;
-            });
-
+            ->map(function ($permission) use($permissionsInactives) {
+	            unset($permission->pivot, $permission->created_at, $permission->updated_at);
+	            if(!$permissionsInactives->whereIn('id', $permission->id)->first()){
+		            return $permission;
+	            }
+            })->filter();
+        
         return $permissions->toBase();
     }
 
